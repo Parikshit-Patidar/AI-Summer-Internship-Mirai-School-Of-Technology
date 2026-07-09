@@ -14,3 +14,11 @@ Throughout this program, I will be gaining hands-on experience and working on re
 * Develop hands-on experience with real-world AI/ML projects.
 * Collaborate with mentors and peers in the Mirai community.
 * Strengthen technical capabilities and nurture critical problem-solving skills.
+
+## 📝 Assignments
+### Assignment 1 — app.py
+- File: `app.py`
+- Description: A simple Streamlit app titled "Echo Chamber 9000" created as Assignment 1 for the internship. The app collects a user's name and message, validates the inputs, displays formatted output on successful submission, and includes a basic token-cost estimator (approximate tokens = characters / 4).
+- Purpose: Demonstrate building an interactive UI with Streamlit and handling basic input validation and output formatting.
+
+
