@@ -1,22 +1,19 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from groq import Groq
+from google import genai
+from google.genai import types
 
-# grab env vars from our .env file
+# Load API key
 load_dotenv(override=True)
-api_key = os.getenv("GROQ_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
 
-# TODO: Add fallback error UI if the Groq key is completely missing in deployment
-client = Groq(api_key=api_key)
-
-# Basic page layout configs
 st.set_page_config(page_title="The Bollywood Saga", page_icon="🎬", layout="centered")
 
 st.title("🎬 The Bollywood Saga")
-st.caption("Blazing fast chats with your favorite Bollywood icons powered by Groq.")
+st.caption("The Memory Vault Edition - Your chat history is now stateful!")
 
-# System prompts mapped out for our 5 stars
 PERSONAS = {
     'Shah Rukh Khan': "You are Shah Rukh Khan. Speak with immense charm, wit, and romance. Use your signature open-arms energy. Greet the user warmly and answer their questions thoughtfully, often weaving in cinematic metaphors about love and life.",
     
@@ -29,63 +26,52 @@ PERSONAS = {
     'Ranveer Singh': "You are Ranveer Singh. You have 1000% energy, boundless enthusiasm, and a wildly quirky style. Use lots of exclamation marks, be loud, supportive, and extremely expressive. Treat the user like your best bro or closest fan."
 }
 
-# Sidebar configuration
 with st.sidebar:
     st.header("⚙️ Casting Call")
     selected_char = st.selectbox("Choose your Star:", list(PERSONAS.keys()))
-    
-    st.divider()
-    
-    if st.button("Clear Conversation"):
-        st.session_state.messages = []
 
-# Persistent chat history implementation via Streamlit session state
+# ==========================================
+# TASK 1: Initialize the Memory Vault
+# ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "current_persona" not in st.session_state:
-    st.session_state.current_persona = selected_char
+# (Note: Removed the logic that wiped the history on character change to satisfy the checklist)
 
-# Auto-wipe chat window if they select a different actor from the dropdown
-if st.session_state.current_persona != selected_char:
-    st.session_state.messages = []
-    st.session_state.current_persona = selected_char
+# ==========================================
+# TASK 2: Render the Chat History
+# ==========================================
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# Render the historical conversation block
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-# Bottom text input bar
-user_input = st.chat_input(f"Say hello to {selected_char}...")
-
-if user_input:
-    # Immediately display what the user wrote and store it
+# ==========================================
+# TASK 3: Upgrade the Input UI
+# ==========================================
+if user_message := st.chat_input("Say something..."):
+    
+    # Display the user's message immediately on screen
     with st.chat_message("user"):
-        st.markdown(user_input)
-    st.session_state.messages.append({"role": "user", "content": user_input})
+        st.markdown(user_message)
+        
+    # TASK 4a: Save New User Message to Memory
+    st.session_state.messages.append({"role": "user", "content": user_message})
 
-    # Grab the current actor prompt configuration
+    # Grab the selected character's system prompt
     sys_instruction = PERSONAS[selected_char]
 
-    # Execute request to the Groq API endpoint
     with st.chat_message("assistant"):
         try:
-            # Using llama-3.3-70b-versatile which handles personas remarkably well
-            res = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": sys_instruction},
-                    {"role": "user", "content": user_input}
-                ]
+            # Call the Gemini API
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=user_message,
+                config=types.GenerateContentConfig(system_instruction=sys_instruction)
             )
+            st.markdown(response.text)
             
-            # Extract content from Groq's payload schema
-            ai_response = res.choices[0].message.content
-            st.markdown(ai_response)
-            
-            # Save historical output
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            # TASK 4b: Save New AI Message to Memory
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
             
         except Exception as e:
-            st.error(f"Something went sideways with the Groq API: {e}")
+            st.error(f"API Error: {e}")
