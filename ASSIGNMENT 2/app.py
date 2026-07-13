@@ -1,18 +1,17 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from groq import Groq
 
-# Load API key
+# Load API key and initialize Groq client
 load_dotenv(override=True)
-api_key = os.getenv("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
+api_key = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=api_key)
 
 st.set_page_config(page_title="The Bollywood Saga", page_icon="🎬", layout="centered")
 
 st.title("🎬 The Bollywood Saga")
-st.caption("The Memory Vault Edition - Your chat history is now stateful!")
+st.caption("The Memory Vault Edition - Now powered by Groq!")
 
 PERSONAS = {
     'Shah Rukh Khan': "You are Shah Rukh Khan. Speak with immense charm, wit, and romance. Use your signature open-arms energy. Greet the user warmly and answer their questions thoughtfully, often weaving in cinematic metaphors about love and life.",
@@ -35,8 +34,6 @@ with st.sidebar:
 # ==========================================
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-# (Note: Removed the logic that wiped the history on character change to satisfy the checklist)
 
 # ==========================================
 # TASK 2: Render the Chat History
@@ -62,16 +59,24 @@ if user_message := st.chat_input("Say something..."):
 
     with st.chat_message("assistant"):
         try:
-            # Call the Gemini API
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=user_message,
-                config=types.GenerateContentConfig(system_instruction=sys_instruction)
+            # Construct the message payload for Groq
+            # We include the system prompt first, then all past messages for true stateful memory
+            api_messages = [{"role": "system", "content": sys_instruction}]
+            for msg in st.session_state.messages:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            
+            # Call the Groq API
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=api_messages
             )
-            st.markdown(response.text)
+            
+            # Extract the text from Groq's response structure
+            ai_text = response.choices[0].message.content
+            st.markdown(ai_text)
             
             # TASK 4b: Save New AI Message to Memory
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.session_state.messages.append({"role": "assistant", "content": ai_text})
             
         except Exception as e:
-            st.error(f"API Error: {e}")
+            st.error(f"Groq API Error: {e}")
