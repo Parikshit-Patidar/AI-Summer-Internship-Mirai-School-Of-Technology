@@ -1,1 +1,139 @@
+import streamlit as st
+import google.generativeai as genai
+import json
+import requests
+import urllib.parse
+from gtts import gTTS
+import os
 
+# --- UI Setup & Config ---
+st.set_page_config(page_title="AI Visual Novel Engine", layout="wide")
+
+st.sidebar.title("🎬 Story Settings")
+api_key = st.sidebar.text_input("Enter Gemini API Key", type="password")
+genre = st.sidebar.selectbox("Story Genre", ["Cyberpunk", "Dark Fantasy", "Sci-Fi", "Mystery"])
+art_style = st.sidebar.selectbox("Art Style", ["Anime", "Cinematic", "Watercolor", "Pixel Art"])
+
+# --- State Management ---
+if "chat" not in st.session_state:
+    st.session_state.chat = None
+if "current_scene" not in st.session_state:
+    st.session_state.current_scene = None
+
+# --- Core Logic ---
+def generate_next_scene(user_choice):
+    """Sends user choice to Gemini, parses the JSON, and fetches media."""
+    try:
+        with st.spinner("The AI Director is writing the next scene..."):
+            # 1. Get AI Response
+            response = st.session_state.chat.send_message(user_choice)
+            raw_text = response.text.strip()
+            
+            # Clean text in case of markdown blocks
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:-3]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:-3]
+                
+            # 2. Parse JSON
+            scene_data = json.loads(raw_text)
+            story_text = scene_data.get("story_text", "Story text missing.")
+            base_prompt = scene_data.get("image_prompt", "")
+            options = scene_data.get("options", ["Continue"])
+            
+            image_prompt = f"{base_prompt}, {art_style} style, masterpiece"
+            
+            # 3. Fetch Image (with fault tolerance)
+            image_url = None
+            try:
+                encoded_prompt = urllib.parse.quote(image_prompt)
+                test_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+                
+                res = requests.get(test_url, timeout=10)
+                if res.status_code == 200:
+                    image_url = test_url
+                else:
+                    st.toast("Image server error. Skipping visual.", icon="⚠️")
+            except Exception:
+                st.toast("Image API timeout. Continuing story...", icon="⚠️")
+
+            # 4. Generate TTS Audio (with fault tolerance)
+            audio_path = "scene_audio.mp3"
+            try:
+                tts = gTTS(text=story_text, lang='en', slow=False)
+                tts.save(audio_path)
+            except Exception:
+                st.toast("TTS generation failed. Skipping voiceover.", icon="⚠️")
+                audio_path = None
+
+            # 5. Update Session State
+            st.session_state.current_scene = {
+                "text": story_text,
+                "image": image_url,
+                "audio": audio_path,
+                "options": options
+            }
+            return True # Flag that the generation was successful
+
+    except Exception as e:
+        # The error will now stay on screen because we return False instead of rerunning
+        st.error(f"Error generating scene: {e}")
+        return False
+
+# --- Render App ---
+if not api_key:
+    st.info("👈 Enter your Gemini API Key in the sidebar to begin.")
+else:
+    # 1. Initialize the chat session using Native JSON Mode
+    if st.session_state.chat is None:
+        genai.configure(api_key=api_key)
+        
+        system_instruction = f"""
+        You are a visual novel engine running a {genre} story. 
+        Format strictly as:
+        {{
+            "story_text": "The narrative paragraph.",
+            "image_prompt": "A highly detailed prompt for an image generator.",
+            "options": ["Choice 1", "Choice 2", "Choice 3"]
+        }}
+        """
+        # Using Gemini 3.6 Flash's native system_instruction and JSON mime_type
+        model = genai.GenerativeModel(
+            'gemini-3.6-flash',
+            system_instruction=system_instruction,
+            generation_config={"response_mime_type": "application/json"}
+        )
+        st.session_state.chat = model.start_chat()
+        
+    # 2. Display Start Button if no scene exists
+    if st.session_state.current_scene is None:
+        if st.button("🚀 Start Adventure"):
+            # Only rerun if the scene generation was successful
+            success = generate_next_scene("Begin the story.")
+            if success:
+                st.rerun()
+
+    # 3. Display the current scene
+    else:
+        scene = st.session_state.current_scene
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            if scene["image"]:
+                st.image(scene["image"], use_container_width=True)
+            
+            st.markdown(f"### {scene['text']}")
+            
+            if scene["audio"] and os.path.exists(scene["audio"]):
+                st.audio(scene["audio"], format="audio/mp3")
+                
+        with col2:
+            st.markdown("### Choose your path:")
+            
+            for idx, choice in enumerate(scene["options"]):
+                if st.button(choice, key=f"btn_{idx}", use_container_width=True):
+                    # Only rerun if the scene generation was successful
+                    success = generate_next_scene(f"I choose to: {choice}")
+                    if success:
+                        st.rerun()
