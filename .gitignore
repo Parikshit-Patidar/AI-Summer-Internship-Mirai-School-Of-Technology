@@ -1,0 +1,9 @@
+# Python virtual environments
+.venv/
+**/.venv/
+
+# Local Streamlit secrets
+Capstone Project/.streamlit/secrets.toml
+
+# Local environment variables
+**/.env
