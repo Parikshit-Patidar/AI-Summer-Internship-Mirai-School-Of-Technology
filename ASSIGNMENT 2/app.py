@@ -62,10 +62,10 @@ user_input = st.chat_input(f"Say hello to {selected_char}...")
 if user_input:
     # Immediately display what the user wrote and store it
     with st.chat_message("user"):
-        st.markdown(user_message)
-        
+        st.markdown(user_input)
+
     # TASK 4a: Save New User Message to Memory
-    st.session_state.messages.append({"role": "user", "content": user_message})
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
     # Grab the current actor prompt configuration
     sys_instruction = PERSONAS[selected_char]
