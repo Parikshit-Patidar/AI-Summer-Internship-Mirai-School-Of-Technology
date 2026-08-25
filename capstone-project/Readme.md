@@ -24,7 +24,7 @@ those into the email automatically.
 
 ## $ live demo
 
-> **[ your deployed streamlit.app link goes here ]**
+> **[ https://ai-summer-internship-mirai-school-of-technology-uvcvmy8rh4ku8c.streamlit.app/ ]**
 
 No API key required to try it — a demo key is wired in via Streamlit Secrets.
 
