@@ -6,6 +6,7 @@ __pycache__/
 
 # Local Streamlit secrets
 Capstone Project/.streamlit/secrets.toml
+capstone-project/.streamlit/secrets.toml
 
 # Local environment variables
 **/.env
