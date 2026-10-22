@@ -7,11 +7,14 @@ from groq import Groq
 load_dotenv(override=True)
 api_key = os.getenv("GROQ_API_KEY")
 
-# TODO: Add fallback error UI if the Groq key is completely missing in deployment
-client = Groq(api_key=api_key)
-
 # Basic page layout configs
 st.set_page_config(page_title="The Bollywood Saga", page_icon="🎬", layout="centered")
+
+if not api_key:
+    st.error("GROQ_API_KEY is not configured. Add it to your .env file or deployment environment.")
+    st.stop()
+
+client = Groq(api_key=api_key)
 
 st.title("🎬 The Bollywood Saga")
 st.caption("Blazing fast chats with your favorite Bollywood icons powered by Groq.")

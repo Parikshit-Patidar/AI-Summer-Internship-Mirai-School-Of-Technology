@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import json
 import requests
 import urllib.parse
@@ -86,8 +87,6 @@ if not api_key:
 else:
     # 1. Initialize the chat session using Native JSON Mode
     if st.session_state.chat is None:
-        genai.configure(api_key=api_key)
-        
         system_instruction = f"""
         You are a visual novel engine running a {genre} story. 
         Format strictly as:
@@ -97,13 +96,16 @@ else:
             "options": ["Choice 1", "Choice 2", "Choice 3"]
         }}
         """
-        # Using Gemini 3.6 Flash's native system_instruction and JSON mime_type
-        model = genai.GenerativeModel(
-            'gemini-3.6-flash',
-            system_instruction=system_instruction,
-            generation_config={"response_mime_type": "application/json"}
+        # Use Gemini's native system_instruction and JSON mime_type.
+        client = genai.Client(api_key=api_key)
+        chat = client.chats.create(
+            model="gemini-2.5-flash",
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+            ),
         )
-        st.session_state.chat = model.start_chat()
+        st.session_state.chat = chat
         
     # 2. Display Start Button if no scene exists
     if st.session_state.current_scene is None:

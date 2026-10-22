@@ -90,7 +90,7 @@ python -m pip install streamlit python-dotenv groq
 python -m pip install -r "ASSIGNMENT 4/requirements.txt"
 
 # Assignment 5
-python -m pip install streamlit google-generativeai requests gTTS
+python -m pip install -r "ASSIGNMENT 5/requirements.txt"
 
 # Assignment 7
 python -m pip install -r "ASSIGNMENT 7/requirements.txt"
@@ -162,7 +162,9 @@ for reproducible deployment.
 ├── ASSIGNMENT 2/app.py       # Groq persona chatbot
 ├── ASSIGNMENT 3/app.py       # Refined Groq persona chatbot
 ├── ASSIGNMENT 4/app.py       # AI image generation studio
-├── ASSIGNMENT 5/app.py       # AI visual novel
+├── ASSIGNMENT 5/             # AI visual novel
+│   ├── app.py
+│   └── requirements.txt
 ├── ASSIGNMENT 6/README.md    # Developer profile and GitHub statistics
 ├── ASSIGNMENT 7/app.py       # Screen-time wellbeing dashboard
 └── capstone-project/         # ColdMail final project
@@ -178,5 +180,4 @@ for reproducible deployment.
 The internship work covers artificial intelligence, machine learning, data
 science, natural language processing, computer vision, generative AI,
 multimodal APIs, and interactive application development with Streamlit.
-
 
